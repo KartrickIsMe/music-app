@@ -1,0 +1,25 @@
+{
+  "name": "com.echoai.musicapp",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/KartrickIsMe/music-app#readme",
+  "bugs": {
+    "url": "https://github.com/KartrickIsMe/music-app/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KartrickIsMe/music-app.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1"
+  }
+}
