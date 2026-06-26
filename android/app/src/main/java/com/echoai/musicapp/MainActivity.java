@@ -2,51 +2,62 @@ package com.echoai.musicapp;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
+
 import com.getcapacitor.BridgeActivity;
 import com.yausername.youtubedl_android.YoutubeDL;
+import com.yausername.youtubedl_android.YoutubeDLException;
 import com.yausername.youtubedl_android.YoutubeDLRequest;
 import com.yausername.youtubedl_android.ffmpeg.FFmpeg;
 
 public class MainActivity extends BridgeActivity {
 
+    private static final String TAG = "yt-dlp";
+
     @Override
-    public void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         try {
             YoutubeDL.getInstance().init(this);
             FFmpeg.getInstance().init(this);
-            Log.d("yt-dlp", "✅ Library initialized");
-        } catch (Exception e) {
-            Log.e("yt-dlp", "Init failed", e);
+            Log.d(TAG, "Library initialized");
+        } catch (YoutubeDLException e) {
+            Log.e(TAG, "Initialization failed", e);
         }
 
-        // Enable calling Java from JavaScript
-        WebView webView = getBridge().getWebView();
-        webView.addJavascriptInterface(new JsInterface(), "Android");
+        WebView webView = bridge.getWebView();
+        webView.addJavascriptInterface(new JsBridge(), "Android");
     }
 
-    // Inner class to expose methods to JS
-    public class JsInterface {
-        @android.webkit.JavascriptInterface
+    public class JsBridge {
+
+        @JavascriptInterface
         public void downloadYoutube(String url) {
+
             new Thread(() -> {
                 try {
-                    Log.d("yt-dlp", "Downloading: " + url);
+                    Log.d(TAG, "Downloading: " + url);
 
                     YoutubeDLRequest request = new YoutubeDLRequest(url);
-                    request.addOption("-x");                    // audio only
+                    request.addOption("-x");
                     request.addOption("--audio-format", "mp3");
-                    request.addOption("-o", "/sdcard/Download/%(title)s.%(ext)s");
+                    request.addOption(
+                            "-o",
+                            "/sdcard/Download/%(title)s.%(ext)s"
+                    );
 
-                    YoutubeDL.getInstance().execute(request, (progress, etaInSeconds) -> {
-                        Log.d("yt-dlp", "Progress: " + progress + "%");
-                    });
+                    YoutubeDL.getInstance().execute(
+                            request,
+                            (progress, etaInSeconds) ->
+                                    Log.d(TAG, "Progress: " + progress + "%")
+                    );
 
-                    Log.d("yt-dlp", "✅ Download completed!");
+                    Log.d(TAG, "Download completed");
+
                 } catch (Exception e) {
-                    Log.e("yt-dlp", "❌ Download failed", e);
+                    Log.e(TAG, "Download failed", e);
                 }
             }).start();
         }
