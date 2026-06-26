@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html>
 <body>
-<input id="url" placeholder="Enter audio URL">
-<button onclick="playFromUrl()">
-Play
-</button>
-<audio id="audioplayer" controls></audio>
+<div>
+  <input type="text" id="youtubeUrl" placeholder="Paste YouTube link here" style="width: 80%;">
+  <button onclick="startDownload()">Download Audio (MP3)</button>
+</div>
+
+<p id="status">Status: Ready</p>
 <script src="app.js"></script>
 </body>
 </html>
