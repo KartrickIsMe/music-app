@@ -1,7 +1,5 @@
 package com.echoai.musicapp;
 
-package com.yourcompany.musicapp;   // ← Change to your actual package (check capacitor.config.json)
-
 import android.os.Bundle;
 import android.util.Log;
 import android.webkit.WebView;
