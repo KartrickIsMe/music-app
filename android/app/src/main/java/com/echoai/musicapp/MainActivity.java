@@ -2,6 +2,7 @@ package com.echoai.musicapp;
 
 import android.os.Bundle;
 import android.util.Log;
+import com.getcapacitor.BridgeActivity;
 import com.farimarwat.youtubedlboom.YoutubeDL;
 import com.farimarwat.youtubedlboom.YoutubeDLRequest;
 import com.farimarwat.youtubedlboom.YoutubeDLResponse;
@@ -40,18 +41,16 @@ public class MainActivity extends BridgeActivity {
             try {
                 YoutubeDLRequest request = new YoutubeDLRequest(url);
 
-                // CORRECT way (from manual)
                 request.addOption(
                     "-o",
                     com.farimarwat.youtubedlboom.StoragePermissionHelper.downloadDir.getAbsolutePath() +
                     "/%(title)s.%(ext)s"
                 );
 
-                // Download (full signature)
                 YoutubeDL.download(
                     request,
                     "download-" + System.currentTimeMillis(),
-                    { percentage, elapsedTime, outputLine -> 
+                    (percentage, elapsedTime, outputLine) -> {
                         Log.d("YT-DLP", "Progress: " + percentage + "% | " + outputLine);
                     },
                     processId -> {
