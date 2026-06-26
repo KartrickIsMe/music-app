@@ -11,7 +11,7 @@ import com.farimarwat.youtubedlboom.YoutubeDLResponse;
 
 public class MainActivity extends BridgeActivity {
 
-    private YoutubeDL youtubeDl;   // Global instance
+    private YoutubeDL youtubeDl;   // Global instance (nullable in reality)
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -23,7 +23,7 @@ public class MainActivity extends BridgeActivity {
     private void initYoutubeDL() {
         YoutubeDL.init(
             this,                    // appContext
-            true,                    // withFfmpeg = true (strongly recommended)
+            true,                    // withFfmpeg = true (recommended)
             false,                   // withAria2c = false
             youtubeDl -> {           // onSuccess
                 this.youtubeDl = youtubeDl;
@@ -50,20 +50,20 @@ public class MainActivity extends BridgeActivity {
                 // Important: Set output path
                 request.addOption("-o", getExternalFilesDir(null) + "/%(title)s.%(ext)s");
 
-                // Optional extras
-                // request.addOption("--downloader", "ffmpeg");
+                // Optional extras (highly recommended)
                 // request.addOption("--no-part");
+                // request.addOption("--downloader", "ffmpeg");
 
-                youtubeDl.download(
+                YoutubeDL.download(   // This is the correct call (static method on the class)
                     request,
-                    "download-" + System.currentTimeMillis(),   // process ID
-                    (percentage, elapsedTime, outputLine) -> {   // progress callback
+                    "download-" + System.currentTimeMillis(),
+                    (percentage, elapsedTime, outputLine) -> {   // progressCallBack
                         Log.d("YT-DLP", "Progress: " + percentage + "% | " + outputLine);
                     },
-                    processId -> {                               // onStart
+                    processId -> {                               // onStartProcess
                         Log.d("YT-DLP", "Download started: " + processId);
                     },
-                    response -> {                                // onEnd
+                    response -> {                                // onEndProcess
                         Log.d("YT-DLP", "Download finished: " + response.getOut());
                     },
                     error -> {                                   // onError
