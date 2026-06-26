@@ -2,41 +2,34 @@ package com.echoai.musicapp;
 
 import android.os.Bundle;
 import android.util.Log;
-
-import com.getcapacitor.BridgeActivity;
-
 import com.farimarwat.youtubedlboom.YoutubeDL;
 import com.farimarwat.youtubedlboom.YoutubeDLRequest;
 import com.farimarwat.youtubedlboom.YoutubeDLResponse;
 
 public class MainActivity extends BridgeActivity {
 
-    private YoutubeDL youtubeDl;   // Global instance (nullable in reality)
+    private YoutubeDL youtubeDl;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         initYoutubeDL();
     }
 
     private void initYoutubeDL() {
         YoutubeDL.init(
             this,                    // appContext
-            true,                    // withFfmpeg = true (recommended)
-            false,                   // withAria2c = false
-            youtubeDl -> {           // onSuccess
+            true,                    // withFfmpeg
+            false,                   // withAria2c
+            youtubeDl -> {
                 this.youtubeDl = youtubeDl;
                 Log.d("YT-DLP", "YoutubeDL initialized successfully");
             },
-            error -> {               // onError
-                Log.e("YT-DLP", "Init failed", error);
-            }
+            error -> Log.e("YT-DLP", "Init failed", error)
         );
     }
 
-    // Bridge to JS (Capacitor)
-    public static class JSBridge {
+    public class JSBridge {  // Capacitor bridge — non-static is fine
 
         public void downloadVideo(String url) {
             if (youtubeDl == null) {
@@ -47,26 +40,27 @@ public class MainActivity extends BridgeActivity {
             try {
                 YoutubeDLRequest request = new YoutubeDLRequest(url);
 
-                // Important: Set output path
-                request.addOption("-o", getExternalFilesDir(null) + "/%(title)s.%(ext)s");
+                // CORRECT way (from manual)
+                request.addOption(
+                    "-o",
+                    com.farimarwat.youtubedlboom.StoragePermissionHelper.downloadDir.getAbsolutePath() +
+                    "/%(title)s.%(ext)s"
+                );
 
-                // Optional extras (highly recommended)
-                // request.addOption("--no-part");
-                // request.addOption("--downloader", "ffmpeg");
-
-                YoutubeDL.download(   // This is the correct call (static method on the class)
+                // Download (full signature)
+                YoutubeDL.download(
                     request,
                     "download-" + System.currentTimeMillis(),
-                    (percentage, elapsedTime, outputLine) -> {   // progressCallBack
+                    { percentage, elapsedTime, outputLine -> 
                         Log.d("YT-DLP", "Progress: " + percentage + "% | " + outputLine);
                     },
-                    processId -> {                               // onStartProcess
+                    processId -> {
                         Log.d("YT-DLP", "Download started: " + processId);
                     },
-                    response -> {                                // onEndProcess
+                    response -> {
                         Log.d("YT-DLP", "Download finished: " + response.getOut());
                     },
-                    error -> {                                   // onError
+                    error -> {
                         Log.e("YT-DLP", "Download failed", error);
                     }
                 );
