@@ -29,8 +29,7 @@ jobs:
       - run: |
           cd android
           chmod +x gradlew
-          ./gradlew app:dependencies --configuration debugCompileClasspath --stacktrace 2>&1 | tee deps_output.txt
-          grep -A 5 -B 5 -i "youtubedl" deps_output.txt
+          ./gradlew --no-daemon --stacktrace --info
       - name: Compress apk
         run: |
           cd android/app/build/outputs/apk/debug
