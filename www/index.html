@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
-<body>
-<div>
-  <input type="text" id="youtubeUrl" placeholder="Paste YouTube link here" style="width: 80%;">
-  <button onclick="startDownload()">Download Audio (MP3)</button>
-</div>
+<head>
+    <title>YT Downloader</title>
+</head>
 
-<p id="status">Status: Ready</p>
-<script src="app.js"></script>
+<body>
+    <input id="url" placeholder="YouTube URL" />
+    <button onclick="downloadVideo()">Download</button>
+
+    <script src="app.js"></script>
 </body>
 </html>
-

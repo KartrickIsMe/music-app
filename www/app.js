@@ -1,23 +1,14 @@
-async function startDownload() {
-    const urlInput = document.getElementById('youtubeUrl');
-    const url = urlInput.value.trim();
-    const status = document.getElementById('status');
+function downloadVideo() {
+    const url = document.getElementById("url").value;
 
     if (!url) {
-        status.textContent = "Please paste a YouTube link";
+        alert("No URL");
         return;
     }
 
-    status.textContent = "⏳ Sending to yt-dlp...";
-
-    try {
-        if (window.Android) {
-            window.Android.downloadYoutube(url);     // This calls the Java method
-            status.textContent = "✅ Download started! Check your Downloads folder.";
-        } else {
-            status.textContent = "Not running in Android app";
-        }
-    } catch (e) {
-        status.textContent = "Error: " + e.message;
+    if (window.Android && Android.download) {
+        Android.download(url);
+    } else {
+        alert("Android bridge not available");
     }
 }
