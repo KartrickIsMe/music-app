@@ -29,7 +29,7 @@ jobs:
       - run: |
           cd android
           chmod +x gradlew
-          ./gradlew --no-daemon --stacktrace --info
+          ./gradlew assembleDebug --no-daemon --stacktrace
       - name: Compress apk
         run: |
           cd android/app/build/outputs/apk/debug
