@@ -12,25 +12,30 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - run: npm install
+
       - run: npx cap sync android
 
       - run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace --info
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
       - name: Compress apk
-            run: |
-              cd android/app/build/outputs/apk/debug
-              zip -9 app-debug.zip app-debug.apk
+        run: |
+          cd android/app/build/outputs/apk/debug
+          zip -9 app-debug.zip app-debug.apk
+
       - name: Create Alpha Release
         uses: softprops/action-gh-release@v2
         with:
