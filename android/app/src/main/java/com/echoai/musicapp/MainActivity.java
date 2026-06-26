@@ -1,14 +1,13 @@
 package com.echoai.musicapp;
 
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
-import android.webkit.JavascriptInterface;
-import android.webkit.WebView;
 
 import com.getcapacitor.BridgeActivity;
-import com.farimarwat.youtubedl.YoutubeDL;
-import com.farimarwat.youtubedl.YoutubeDLRequest;
+
+// BOOM library imports (correct version)
+import com.farimarwat.youtubedlboom.YoutubeDL;
+import com.farimarwat.youtubedlboom.YoutubeDLRequest;
 
 public class MainActivity extends BridgeActivity {
 
@@ -16,50 +15,32 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Init library
         try {
-            YoutubeDL.init(this);
-            Log.d("yt", "yt-dlp initialized");
+            // Initialize YouTubeDL engine
+            YoutubeDL.getInstance().init(this);
         } catch (Exception e) {
-            Log.e("yt", "init failed", e);
+            Log.e("YT-DLP", "Init failed", e);
         }
-
-        // JS bridge
-        WebView webView = getBridge().getWebView();
-        webView.addJavascriptInterface(new JSBridge(), "Android");
     }
 
+    // Bridge to JS (Capacitor)
     public class JSBridge {
 
-        @JavascriptInterface
-        public void download(String url) {
+        public void downloadVideo(String url) {
 
-            new Thread(() -> {
-                try {
-                    Log.d("yt", "Downloading: " + url);
+            try {
+                // Create a request object for the video URL
+                YoutubeDLRequest request = new YoutubeDLRequest(url);
 
-                    YoutubeDLRequest request = new YoutubeDLRequest(url);
+                // Optional: add arguments (you can tweak later)
+                request.addOption("-f", "best");
 
-                    // audio only
-                    request.addOption("-f", "bestaudio[ext=m4a]/bestaudio");
+                // Execute download
+                YoutubeDL.getInstance().execute(request);
 
-                    // SAFE OUTPUT PATH (NO PERMISSIONS REQUIRED)
-                    String outputDir = getExternalFilesDir(
-                            Environment.DIRECTORY_DOWNLOADS
-                    ).getAbsolutePath();
-
-                    request.addOption("-o",
-                            outputDir + "/%(title)s.%(ext)s"
-                    );
-
-                    YoutubeDL.getInstance().execute(request);
-
-                    Log.d("yt", "Download completed");
-
-                } catch (Exception e) {
-                    Log.e("yt", "Download failed", e);
-                }
-            }).start();
+            } catch (Exception e) {
+                Log.e("YT-DLP", "Download failed", e);
+            }
         }
     }
 }
