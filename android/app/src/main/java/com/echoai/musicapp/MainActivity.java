@@ -1,5 +1,6 @@
 package com.echoai.musicapp;
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
@@ -9,25 +10,35 @@ import com.getcapacitor.BridgeActivity;
 
 import com.yausername.youtubedl_android.YoutubeDL;
 import com.yausername.youtubedl_android.YoutubeDLRequest;
+import com.yausername.youtubedl_android.YoutubeDLResponse;
+
+import java.io.File;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import kotlin.Unit;
 
 public class MainActivity extends BridgeActivity {
 
     private static final String TAG = "MusicApp";
 
+    // Pulls the saved file's path out of yt-dlp's stdout, e.g.:
+    //   [download] Destination: /data/.../audio/dQw4w9WgXcQ.m4a
+    //   [download] /data/.../audio/dQw4w9WgXcQ.m4a has already been downloaded
+    private static final Pattern DEST_PATTERN = Pattern.compile(
+            "Destination:\\s*(.+)|\\[download\\]\\s*(.+?)\\s+has already been downloaded"
+    );
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState); // Capacitor builds the WebView here
 
-        // Step 1: Unpack and start yt-dlp. This must happen once before any
-        // other call into YoutubeDL. It only does real work on the very
-        // first run after install; after that it's fast.
         try {
             YoutubeDL.getInstance().init(this);
         } catch (Exception e) {
             Log.e(TAG, "Failed to initialize yt-dlp", e);
         }
 
-        // Step 2: Let www/app.js call into this class as window.Android.*
         registerBridge();
     }
 
@@ -36,55 +47,75 @@ public class MainActivity extends BridgeActivity {
         webView.addJavascriptInterface(new AndroidBridge(), "Android");
     }
 
-    // Every public method in here is reachable from JS as window.Android.<name>
     private class AndroidBridge {
 
-        // Called from app.js like:
-        //   window.Android.getAudioStreamUrl("https://youtu.be/...")
         @JavascriptInterface
         public void getAudioStreamUrl(String youtubeUrl) {
-
-            // yt-dlp does network + CPU work, so this MUST NOT run on the
-            // main/UI thread (the app would freeze, and Android would
-            // throw a NetworkOnMainThreadException). A plain background
-            // Thread is the simplest way to get off the main thread —
-            // no extra libraries required.
             new Thread(() -> {
                 try {
-                    // Build the yt-dlp request for this video.
+                    sendLog("Starting download: " + youtubeUrl);
+
+                    File outDir = new File(getFilesDir(), "audio");
+                    if (!outDir.exists()) outDir.mkdirs();
+
                     YoutubeDLRequest request = new YoutubeDLRequest(youtubeUrl);
-
-                    // "-f bestaudio" tells yt-dlp: give me the best
-                    // audio-only stream you can find, no video track.
-                    // This is a format the HTML <audio> tag can stream
-                    // and play directly, so no downloading/converting
-                    // to a local file is needed.
                     request.addOption("-f", "bestaudio[ext=m4a]/bestaudio");
+                    // %(id)s.%(ext)s -> stable, unique filename per video.
+                    request.addOption("-o", outDir.getAbsolutePath() + "/%(id)s.%(ext)s");
 
-                    // Run yt-dlp (similar to --dump-json) and read the
-                    // direct, playable URL straight off the result.
-                    String streamUrl = YoutubeDL.getInstance().getInfo(request).getUrl();
+                    String processId = "audio-dl-" + System.currentTimeMillis();
 
-                    if (streamUrl == null || streamUrl.isEmpty()) {
-                        sendError("No audio stream found for this link.");
-                    } else {
-                        sendStreamUrl(streamUrl);
+                    YoutubeDLResponse response = YoutubeDL.getInstance().execute(
+                            request,
+                            processId,
+                            (progress, etaInSeconds, line) -> {
+                                sendLog(String.format("%.0f%% — %s", progress, line));
+                                return Unit.INSTANCE; // required: this callback returns Unit, not void
+                            }
+                    );
+
+                    String filePath = extractFilePath(response.getOut());
+                    if (filePath == null) {
+                        sendError("Download finished but couldn't locate the output file.");
+                        return;
                     }
 
+                    File downloadedFile = new File(filePath);
+                    if (!downloadedFile.exists()) {
+                        sendError("Downloaded file missing on disk: " + filePath);
+                        return;
+                    }
+
+                    sendLog("Saved to internal storage: " + downloadedFile.getAbsolutePath());
+
+                    // Hand JS a file:// URI. app.js converts it with
+                    // Capacitor.convertFileSrc() before playback.
+                    String fileUri = Uri.fromFile(downloadedFile).toString();
+                    sendStreamUrl(fileUri);
+
                 } catch (Exception e) {
-                    // Covers yt-dlp errors (bad/unsupported link, no
-                    // internet, etc.) as well as anything unexpected.
-                    Log.e(TAG, "Failed to extract audio stream", e);
+                    Log.e(TAG, "Failed to download audio", e);
+                    sendLog("ERROR: " + e.getMessage());
                     sendError(e.getMessage() != null ? e.getMessage() : "Unknown error");
                 }
             }).start();
         }
     }
 
+    private String extractFilePath(String stdout) {
+        if (stdout == null) return null;
+        String lastMatch = null;
+        Matcher m = DEST_PATTERN.matcher(stdout);
+        while (m.find()) {
+            lastMatch = m.group(1) != null ? m.group(1) : m.group(2);
+        }
+        return lastMatch != null ? lastMatch.trim() : null;
+    }
+
     // ── Helpers: call back into JavaScript on the UI thread ──────────────
 
-    private void sendStreamUrl(String url) {
-        String safeUrl = jsEscape(url);
+    private void sendStreamUrl(String fileUri) {
+        String safeUrl = jsEscape(fileUri);
         runOnUiThread(() ->
             getBridge().getWebView().evaluateJavascript(
                 "window.onAudioReady('" + safeUrl + "')", null
@@ -101,9 +132,21 @@ public class MainActivity extends BridgeActivity {
         );
     }
 
-    // Escape characters that would otherwise break the JS string literal
-    // we're building above (e.g. a quote inside an error message).
+    // Pushes a line into the on-screen log panel in index.html.
+    private void sendLog(String message) {
+        Log.d(TAG, message); // still goes to Logcat too
+        String safeMsg = jsEscape(message);
+        runOnUiThread(() ->
+            getBridge().getWebView().evaluateJavascript(
+                "window.onNativeLog('" + safeMsg + "')", null
+            )
+        );
+    }
+
     private String jsEscape(String s) {
-        return s.replace("\\", "\\\\").replace("'", "\\'");
+        return s.replace("\\", "\\\\")
+                .replace("'", "\\'")
+                .replace("\n", " ")
+                .replace("\r", "");
     }
 }
