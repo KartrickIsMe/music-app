@@ -34,7 +34,14 @@ window.onAudioReady = function (streamUrl) {
   playButton.disabled = false;
 
   audioPlayer.src = streamUrl;
-  audioPlayer.play();
+  audioPlayer.load();
+try {
+    await audioPlayer.play();
+    statusText.textContent = "Playing!";
+} catch (err) {
+    console.error(err);
+    statusText.textContent = "Playback failed: " + err.message;
+}
 };
 
 // 3) Java calls this if something went wrong (bad link, no internet,

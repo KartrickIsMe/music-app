@@ -59,7 +59,7 @@ public class MainActivity extends BridgeActivity {
                     // This is a format the HTML <audio> tag can stream
                     // and play directly, so no downloading/converting
                     // to a local file is needed.
-                    request.addOption("-f", "bestaudio");
+                    request.addOption("-f", "bestaudio[ext=m4a]/bestaudio");
 
                     // Run yt-dlp (similar to --dump-json) and read the
                     // direct, playable URL straight off the result.
