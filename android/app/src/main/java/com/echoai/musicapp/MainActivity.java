@@ -11,6 +11,7 @@ import com.getcapacitor.BridgeActivity;
 import com.yausername.youtubedl_android.YoutubeDL;
 import com.yausername.youtubedl_android.YoutubeDLRequest;
 import com.yausername.youtubedl_android.YoutubeDLResponse;
+import com.yausername.youtubedl_android.UpdateChannel;
 
 import java.io.File;
 import java.util.regex.Matcher;
@@ -31,16 +32,30 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState); // Capacitor builds the WebView here
+    	super.onCreate(savedInstanceState); // Capacitor builds the WebView here
 
-        try {
-            YoutubeDL.getInstance().init(this);
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to initialize yt-dlp", e);
-        }
+    	registerBridge();
 
-        registerBridge();
-    }
+    // init() and updateYoutubeDL() both touch the network/filesystem,
+    // so they must run off the main thread.
+    		new Thread(() -> {
+        		try {
+            			YoutubeDL.getInstance().init(this);
+        		} catch (Exception e) {
+            			Log.e(TAG, "Failed to initialize yt-dlp", e);
+        		}
+
+        		try {
+            		// Pulls the latest yt-dlp release, which keeps the YouTube
+            		// n-challenge/signature logic current. This is what fixes
+            		// the 403 you're seeing.
+            			YoutubeDL.getInstance().updateYoutubeDL(this, UpdateChannel.STABLE);
+            			Log.d(TAG, "yt-dlp updated");
+        		} catch (Exception e) {
+            			Log.e(TAG, "Failed to update yt-dlp", e);
+        		}
+    		}).start();
+	}
 
     private void registerBridge() {
         WebView webView = getBridge().getWebView();
