@@ -29,7 +29,7 @@ playButton.addEventListener('click', () => {
 });
 
 // 2) Java calls this when it found a playable audio stream URL.
-window.onAudioReady = function (streamUrl) {
+window.onAudioReady = async function (streamUrl) {
   statusText.textContent = 'Playing!';
   playButton.disabled = false;
 
