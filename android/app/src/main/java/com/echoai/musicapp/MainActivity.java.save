@@ -1,0 +1,22 @@
+package com.echoai.musicapp;
+
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+	private YoutubeDL youtubeDl = null;
+
+YoutubeDL.INSTANCE.init(
+        this, // appContext
+        true, // withFfmpeg
+        false, // withAria2c
+        youtubeDLInstance -> { // onSuccess
+            youtubeDl = youtubeDLInstance;
+            return kotlin.Unit.INSTANCE;
+        },
+        throwable -> { // onError
+            Timber.e(throwable);
+            return kotlin.Unit.INSTANCE;
+        }
+);
+
+}
