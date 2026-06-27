@@ -7,154 +7,102 @@ import android.webkit.WebView;
 
 import com.getcapacitor.BridgeActivity;
 
-// ── farimarwat / YoutubeDl-Boom (add to build.gradle.kts) ────────────────
-//   implementation("io.github.farimarwat:youtubedl-boom:1.0.23")
-//   implementation("io.github.farimarwat:youtubedl-boom-commons:1.2")
-//
-// ⚠ If Android Studio can't resolve these imports, open the .aar or browse
-//   the GitHub source to confirm the exact package path.
-import com.farimarwat.youtubedlboom.YoutubeDL;
-import com.farimarwat.youtubedlboom.commons.VideoInfo;
-import com.farimarwat.youtubedlboom.commons.VideoFormat;
-
-import kotlin.Unit;        // required: Kotlin lambdas called from Java must return Unit.INSTANCE
-import java.util.List;
+import com.yausername.youtubedl_android.YoutubeDL;
+import com.yausername.youtubedl_android.YoutubeDLRequest;
 
 public class MainActivity extends BridgeActivity {
 
     private static final String TAG = "MusicApp";
 
-    // Set inside the init onSuccess callback
-    private YoutubeDL youtubeDL;
-
-    // ─────────────────────────────────────────────────────────────────────────
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);   // Capacitor builds the WebView here
+        super.onCreate(savedInstanceState); // Capacitor builds the WebView here
 
-        initYoutubeDL();
+        // Step 1: Unpack and start yt-dlp. This must happen once before any
+        // other call into YoutubeDL. It only does real work on the very
+        // first run after install; after that it's fast.
+        try {
+            YoutubeDL.getInstance().init(this);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to initialize yt-dlp", e);
+        }
+
+        // Step 2: Let www/app.js call into this class as window.Android.*
         registerBridge();
     }
 
-    // ── Step 1: start up the yt-dlp library ──────────────────────────────────
-    private void initYoutubeDL() {
-        // The library uses a Kotlin companion object, so Java calls it as
-        // YoutubeDL.Companion.init(…).
-        // If the method is annotated @JvmStatic, you can write YoutubeDL.init(…) instead.
-        YoutubeDL.Companion.init(
-            this,
-            true,    // withFfmpeg  – needed to merge split audio+video streams
-            false,   // withAria2c  – not needed here
-            instance -> {
-                // 'instance' is the live YoutubeDL object we'll use for every request
-                youtubeDL = instance;
-                Log.d(TAG, "YoutubeDL ready");
-                return Unit.INSTANCE;   // ← always required when a Kotlin lambda returns Unit
-            },
-            error -> {
-                Log.e(TAG, "YoutubeDL init failed: " + error.getMessage());
-                return Unit.INSTANCE;
-            }
-        );
-    }
-
-    // ── Step 2: expose our Java methods to JavaScript as "window.Android" ────
     private void registerBridge() {
         WebView webView = getBridge().getWebView();
         webView.addJavascriptInterface(new AndroidBridge(), "Android");
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Everything in this class is visible to JS as  window.Android.<method>
-    // ─────────────────────────────────────────────────────────────────────────
+    // Every public method in here is reachable from JS as window.Android.<name>
     private class AndroidBridge {
 
-        // JS calls: window.Android.getStreamUrl("https://youtube.com/watch?v=…")
+        // Called from app.js like:
+        //   window.Android.getAudioStreamUrl("https://youtu.be/...")
         @JavascriptInterface
-        public void getStreamUrl(String url) {
+        public void getAudioStreamUrl(String youtubeUrl) {
 
-            if (youtubeDL == null) {
-                sendError("YoutubeDL is still initialising – try again in a moment.");
-                return;
-            }
+            // yt-dlp does network + CPU work, so this MUST NOT run on the
+            // main/UI thread (the app would freeze, and Android would
+            // throw a NetworkOnMainThreadException). A plain background
+            // Thread is the simplest way to get off the main thread —
+            // no extra libraries required.
+            new Thread(() -> {
+                try {
+                    // Build the yt-dlp request for this video.
+                    YoutubeDLRequest request = new YoutubeDLRequest(youtubeUrl);
 
-            // getInfo() runs yt-dlp in the background via Kotlin coroutines.
-            // onSuccess / onError are delivered on the main thread.
-            youtubeDL.getInfo(
-                url,
-                videoInfo -> {
-                    String streamUrl = pickBestAudioUrl(videoInfo);
-                    String title     = videoInfo.getTitle() != null ? videoInfo.getTitle() : "";
+                    // "-f bestaudio" tells yt-dlp: give me the best
+                    // audio-only stream you can find, no video track.
+                    // This is a format the HTML <audio> tag can stream
+                    // and play directly, so no downloading/converting
+                    // to a local file is needed.
+                    request.addOption("-f", "bestaudio");
 
-                    if (streamUrl.isEmpty()) {
-                        sendError("No playable audio stream found.");
+                    // Run yt-dlp (similar to --dump-json) and read the
+                    // direct, playable URL straight off the result.
+                    String streamUrl = YoutubeDL.getInstance().getInfo(request).getUrl();
+
+                    if (streamUrl == null || streamUrl.isEmpty()) {
+                        sendError("No audio stream found for this link.");
                     } else {
-                        sendStreamUrl(streamUrl, title);
+                        sendStreamUrl(streamUrl);
                     }
-                    return Unit.INSTANCE;
-                },
-                error -> {
-                    String msg = error.getMessage();
-                    sendError(msg != null ? msg : "Unknown yt-dlp error");
-                    return Unit.INSTANCE;
+
+                } catch (Exception e) {
+                    // Covers yt-dlp errors (bad/unsupported link, no
+                    // internet, etc.) as well as anything unexpected.
+                    Log.e(TAG, "Failed to extract audio stream", e);
+                    sendError(e.getMessage() != null ? e.getMessage() : "Unknown error");
                 }
-            );
-        }
-
-        // Walk VideoInfo.formats looking for an audio-only stream first,
-        // then fall back to any URL that exists.
-        private String pickBestAudioUrl(VideoInfo videoInfo) {
-
-            List<VideoFormat> formats = videoInfo.getFormats();
-            if (formats != null) {
-
-                // Pass 1 – audio-only (vcodec == "none" means no video track)
-                for (VideoFormat fmt : formats) {
-                    String vcodec = fmt.getVcodec();
-                    String fmtUrl = fmt.getUrl();
-                    if (fmtUrl != null && !fmtUrl.isEmpty()
-                            && (vcodec == null || vcodec.equals("none"))) {
-                        return fmtUrl;
-                    }
-                }
-
-                // Pass 2 – any format with a URL (combined audio+video is fine too)
-                for (VideoFormat fmt : formats) {
-                    String fmtUrl = fmt.getUrl();
-                    if (fmtUrl != null && !fmtUrl.isEmpty()) {
-                        return fmtUrl;
-                    }
-                }
-            }
-
-            // Last resort: top-level url that yt-dlp picks as "best"
-            String topUrl = videoInfo.getUrl();
-            return topUrl != null ? topUrl : "";
+            }).start();
         }
     }
 
-    // ── Helpers: call back into JavaScript ───────────────────────────────────
+    // ── Helpers: call back into JavaScript on the UI thread ──────────────
 
-    private void sendStreamUrl(String url, String title) {
-        String safeUrl   = jsEscape(url);
-        String safeTitle = jsEscape(title);
+    private void sendStreamUrl(String url) {
+        String safeUrl = jsEscape(url);
         runOnUiThread(() ->
             getBridge().getWebView().evaluateJavascript(
-                "window.onStreamUrl('" + safeUrl + "', '" + safeTitle + "')", null
+                "window.onAudioReady('" + safeUrl + "')", null
             )
         );
     }
 
     private void sendError(String message) {
-        String safe = jsEscape(message != null ? message : "Unknown error");
+        String safeMsg = jsEscape(message);
         runOnUiThread(() ->
             getBridge().getWebView().evaluateJavascript(
-                "window.onStreamError('" + safe + "')", null
+                "window.onAudioError('" + safeMsg + "')", null
             )
         );
     }
 
-    // Escape backslashes then single-quotes so the JS string literals stay valid
+    // Escape characters that would otherwise break the JS string literal
+    // we're building above (e.g. a quote inside an error message).
     private String jsEscape(String s) {
         return s.replace("\\", "\\\\").replace("'", "\\'");
     }

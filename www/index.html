@@ -3,50 +3,73 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Music App</title>
+  <title>Simple YouTube Audio Player</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: sans-serif;
-      background: #1a1a2e;
-      color: #eee;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px 20px;
-      gap: 16px;
+      font-family: -apple-system, Roboto, sans-serif;
+      padding: 24px;
+      background: #121212;
+      color: #f5f5f5;
     }
-    h1 { font-size: 24px; }
-    input[type="url"] {
-      width: 100%; max-width: 500px;
-      padding: 12px 16px; font-size: 15px;
-      background: #16213e; border: 1px solid #0f3460;
-      border-radius: 8px; color: #eee; outline: none;
+    h1 {
+      font-size: 18px;
+      margin-bottom: 16px;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      box-sizing: border-box;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #1e1e1e;
+      color: #fff;
+      margin-bottom: 12px;
     }
     button {
-      padding: 12px 32px; font-size: 16px;
-      background: #e94560; color: #fff;
-      border: none; border-radius: 8px; cursor: pointer;
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      background: #4cafef;
+      color: #000;
+      font-weight: 600;
     }
-    button:disabled { opacity: 0.5; cursor: default; }
-    #status    { color: #aaa; font-size: 13px; min-height: 18px; }
-    #songTitle { font-size: 17px; font-weight: 600; }
-    audio      { width: 100%; max-width: 500px; }
+    button:disabled {
+      opacity: 0.5;
+    }
+    #status {
+      margin-top: 12px;
+      font-size: 14px;
+      color: #aaa;
+    }
+    audio {
+      width: 100%;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
-  <h1>🎵 Music App</h1>
-  <input id="urlInput" type="url" placeholder="Paste a YouTube URL…" />
-  <button id="playBtn">▶ Play</button>
-  <p id="status">Paste a URL and tap Play</p>
-  <p id="songTitle"></p>
-  <audio id="player" controls></audio>
+
+  <h1>Paste a YouTube link to play its audio</h1>
+
+  <input
+    id="youtube-url"
+    type="text"
+    placeholder="https://www.youtube.com/watch?v=..."
+  />
+
+  <button id="play-button">Play Audio</button>
+
+  <div id="status"></div>
+
+  <!-- This is the actual audio player. app.js sets its "src" and -->
+  <!-- calls .play() once the native (Java) side hands back a      -->
+  <!-- working stream URL.                                         -->
+  <audio id="audio-player" controls></audio>
 
   <script src="app.js"></script>
 </body>
 </html>
-
 
 
 

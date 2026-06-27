@@ -1,1 +1,1 @@
-cat android/app/src/main/java/com/echoai/musicapp/MainActivity.java
+nano android/app/src/main/java/com/echoai/musicapp/MainActivity.java
