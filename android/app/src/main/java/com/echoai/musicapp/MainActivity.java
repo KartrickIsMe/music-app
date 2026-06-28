@@ -48,7 +48,7 @@ public class MainActivity extends BridgeActivity {
             		// Pulls the latest yt-dlp release, which keeps the YouTube
             		// n-challenge/signature logic current. This is what fixes
             		// the 403 you're seeing.
-            			YoutubeDL.getInstance().updateYoutubeDL(this, YoutubeDL.UpdateChannel.STABLE);
+            			YoutubeDL.getInstance().updateYoutubeDL(this, YoutubeDL.UpdateChannel._STABLE);
             			Log.d(TAG, "yt-dlp updated");
         		} catch (Exception e) {
             			Log.e(TAG, "Failed to update yt-dlp", e);
