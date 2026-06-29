@@ -37,5 +37,5 @@ jobs:
       - name: Create artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AlphaBuild${{ github.run_number }}
+          name: ExperimentalBuild${{ github.run_number }}
           path: android/app/build/outputs/apk/debug/*.apk
