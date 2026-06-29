@@ -9,7 +9,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getBridge().getWebView().getJavascriptInterface(new Android(), "Android");
+        getBridge().getWebView().addJavascriptInterface(new Android(), "Android");
     }
     
     private class Android {
