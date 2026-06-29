@@ -4,3 +4,5 @@ node_modules/
 ma.sh
 cat.sh
 catcode.sh
+*.apk
+*.sh
