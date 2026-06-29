@@ -33,15 +33,9 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
-      - name: Compress apk
-        run: |
-          cd android/app/build/outputs/apk/debug
-          zip -9 app-debug.zip app-debug.apk
 
-      - name: Create Alpha Release
-        uses: softprops/action-gh-release@v2
+      - name: Create artifact
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: alpha-${{ github.run_number }}
-          name: Alpha Build ${{ github.run_number }}
-          prerelease: true
-          files: android/app/build/outputs/apk/debug/app-debug.zip
+          name: AlphaBuild${{ github.run_number }}
+          path: android/app/build/outputs/apk/debug/*.apk
