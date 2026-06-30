@@ -4,7 +4,7 @@ window.onReply = function (message) {
 
 
 function buttonclick() {
-    document.getElementByid("button").addEventListener("click", invokeAndroid)
+    document.getElementById("button").addEventListener("click", invokeAndroid)
 }
 
 function invokeAndroid() {
