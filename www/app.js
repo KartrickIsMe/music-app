@@ -10,3 +10,4 @@ function buttonclick() {
 function invokeAndroid() {
     window.Android.sayHello();
 }
+buttonclick();
