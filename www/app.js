@@ -1,21 +1,24 @@
-const box = document.getElementById("input");
-let number = null;
-const display = document.getElementById("output");
-const execute = document.getElementById("button");
-let n = null;
+const dividend = document.getElementById("dividend");
+const divisor = document.getElementById("divisor");
+const divide = document.getElementById("divide");
+const answer = document.getElementById("answer");
+const capPath = 'file:///data/data/com.echoai.musicapp/cache/answer.txt';
+let webPath = null;
+const nativePath = '/data/data/com.echoai.musicapp/cache/answer.txt';
 
-function getValue() {
-    number = parseFloat(box.value);
-    n = number;
-    sendToAndroid(n);
+function createAnswer() {
+    window.Android.createAnswer(parseFloat(dividend.value),parseFloat(divisor.value),nativePath);
 }
 
-function sendToAndroid(n) {
-    window.Android.replyToJs(n);
+window.giveAnswer = async function() {
+    answer.textContent = await readFile(capPath);
 }
 
-window.replyFromJava = function recieveReply(out){
-    display.textContent = out;
+async function readFile(path) {
+    webPath = Capacitor.convertFileSrc(path);
+    const response = await fetch(webPath);
+    const content = await response.text();
+    return content;
 }
 
-execute.addEventListener("click", getValue);
+divide.addEventListener("click", createAnswer);
