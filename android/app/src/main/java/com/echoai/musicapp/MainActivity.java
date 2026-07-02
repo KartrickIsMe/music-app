@@ -23,6 +23,8 @@ import android.net.Uri;
 import android.provider.MediaStore;
 import android.content.ContentResolver;
 
+import kotlin.Unit;
+
 public class MainActivity extends BridgeActivity {
     
     final String YTTAG = "[ytdlplib]";
@@ -66,7 +68,9 @@ public class MainActivity extends BridgeActivity {
             request.addOption("--output" , intFile.getAbsolutePath() + "/" + "%(id)s.%(ext)s");
             String processId = intSongName;
             YoutubeDL.getInstance().execute(request , processId ,(progress , etaInSeconds, outputLine) -> {
-                sendLog(YTTAG + String.valueOf(progress) + " " + String.valueOf(etaInSeconds) +" " +String.valueOf(outputLine));});
+                sendLog(YTTAG + String.valueOf(progress) + " " + String.valueOf(etaInSeconds) +" " +String.valueOf(outputLine));
+                return Unit.INSTANCE;
+            });
             songToMusic();
             String safePath = org.json.JSONObject.quote(intFile.getAbsolutePath() + "/" + intSongName);
             runOnUiThread(() ->
