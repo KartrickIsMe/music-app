@@ -5,6 +5,7 @@ android {
     defaultConfig {
 	ndk {
 	    abiFilters 'arm64-v8a' , 'armeabi-v7a'
+        universalApk false
 	}
         applicationId "com.echoai.musicapp"
         minSdkVersion rootProject.ext.minSdkVersion
