@@ -1,24 +1,37 @@
-const dividend = document.getElementById("dividend");
-const divisor = document.getElementById("divisor");
-const divide = document.getElementById("divide");
-const answer = document.getElementById("answer");
-const capPath = 'file:///data/data/com.echoai.musicapp/cache/answer.txt';
-let webPath = null;
-const nativePath = '/data/data/com.echoai.musicapp/cache/answer.txt';
+const URL = document.getElementById("url");
+const GO = document.getElementById("go");
+const PLAYER = document.getElementById("player");
+const LOGGER = document.getElementById("logbox");
 
-function createAnswer() {
-    window.Android.createAnswer(parseFloat(dividend.value),parseFloat(divisor.value),nativePath);
+//call android to download audio
+function callAudio() {
+    let url = URL.value;
+    GO.disabled = true;
+    window.Android.executeAudioDownload(url);
 }
 
-window.giveAnswer = async function() {
-    answer.textContent = await readFile(capPath);
+//android calls this
+window.playAudio = function(source) {
+    const capSource = Capacitor.convertFileSrc(source);
+    GO.disabled = false;
+    PLAYER.src = capSource;
+    PLAYER.load();
+    PLAYER.play();
 }
 
-async function readFile(path) {
-    webPath = Capacitor.convertFileSrc(path);
-    const response = await fetch(webPath);
-    const content = await response.text();
-    return content;
+function log(event) {
+    LOGGER.innerHTML = event;
+    console.log(event);
 }
 
-divide.addEventListener("click", createAnswer);
+window.logEvent = function (event) {
+    log(event);
+}
+
+window.onInitialized = function () {
+    GO.disabled = false;
+}
+
+//call a wrapper function
+GO.addEventListener("click", callAudio);
+GO.disabled = true;
