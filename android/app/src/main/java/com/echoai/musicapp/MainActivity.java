@@ -64,7 +64,8 @@ public class MainActivity extends BridgeActivity {
             request.addOption("--extract-audio");
             request.addOption("--audio-format" , "mp3");
             request.addOption("--output" , intFile.getAbsolutePath() + "/" + "%(id)s.%(ext)s");
-            YoutubeDL.getInstance().execute(request , (progress , etaInSeconds) -> {
+            String processId = intSongName;
+            YoutubeDL.getInstance().execute(request , processId ,(progress , etaInSeconds) -> {
                 sendLog(YTTAG + String.valueOf(progress) + " " + String.valueOf(etaInSeconds));});
             songToMusic();
             String safePath = org.json.JSONObject.quote(intFile.getAbsolutePath() + "/" + intSongName);
